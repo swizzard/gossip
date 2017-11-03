@@ -1,58 +1,77 @@
 module Gossip.Core
-  ( m
-  , start
-  , tick
-  )
+  -- ( m
+  -- , start
+  -- , tick
+  -- )
  where
 
 import Control.Lens
+import Control.Monad.Random
 import Control.Monad.RWS.Strict
-import System.Random
+import qualified Data.Map as M
 
 import Gossip.Types
 import Gossip.Util
 
-hotel = Place "Hotel" [\a b -> a ++ " and " ++ b ++
-                               " were seen checking into the hotel",
-                       \a b -> "Spotted: " a ++ " and " ++ b ++ " starting a" ++
-                               " romantic rendezvous"]
--- school = Place "School" [\a b ->
+
+placePhrases = M.fromList [(Hotel, [\a b -> a ++ " and " ++ b ++
+                                            " were seen checking into the hotel",
+                                    \a b -> "Spotted: " ++ a ++ " and " ++ b ++
+                                            " starting a romantic rendezvous"]),
+                           (School, [\a b -> "What were " ++ a ++ " and " ++
+                                             b ++ " doing at school together? Perhaps "
+                                            ++ " a little sextra credit?",
+                                     \a b -> "Studying hard or hardly studying, eh " ++
+                                             a ++ " and " ++ b ++ "?"]),
+                           (Bar, [\a b -> "Who was that meeting " ++ a ++
+                                  " for drinks? Could be " ++ b ++
+                                  " is taking a stumble on the wild side?",
+                                  \a b -> a ++ " and " ++ b ++
+                                  " were seen at the bar--drowning their sorrows," ++
+                                  " or developing new ones?"]),
+                           (Store, [\a b -> "What was " ++ b ++ " buying? And why was " ++
+                                    a ++ " waiting across the street?",
+                                    \a b -> "They say money can't buy happiness, but " ++
+                                    a ++ " and " ++ b ++ " sure seem to be trying"])]
 
 m :: PlaceMap
-m = [ (Hotel, (Bar, 4))
-    , (Hotel, (School, 2))
-    , (Hotel, (Store, 2))
-    , (Bar, (Store, 4))
-    , (Bar, (Hotel, 4))
-    , (Store, (Hotel, 2))
-    , (Store, (School, 4))
-    , (Store, (Bar, 4))
-    , (School, (Hotel, 2))
-    , (School, (Store, 4))
-    ]
+m = M.fromList [ (Hotel, [ (Bar, 4)
+                         , (School, 2)
+                         , (Store, 2)])
+               , (Bar, [ (Store, 4)
+                       , (Hotel, 4)])
+               , (Store, [ (Hotel, 2)
+                         , (School, 4)
+                         , (Bar, 4)])
+               , (School, [ (Hotel, 2)
+                          , (Store, 4)])
+               ]
 
 
-tellChar :: String -> Place -> RWS PlaceMap String S ()
-tellChar n pl = tell $ n ++ " is at " ++ show pl ++ "\n"
 
-newDest :: (RandomGen g) => Place -> PlaceMap -> g -> (Path, g)
-newDest pl pm g = ch g $ lk pm pl
 
-tick :: RWS PlaceMap String S ()
-tick = do
-  cs <- use chars
-  pm <- ask
-  cs' <- cs `forM` \(Person n (p, d)) ->
-            case d of
-              1 -> do
-                tellChar n p
-                (newPath, g') <- newDest p pm <$> use gen
-                gen .= g'
-                return $ Person n newPath
-              otherwise -> do
-                return $ Person n (p, d - 1)
-  chars .= cs'
-  return ()
 
-start = makeS 1 [Person "A" (Hotel, 4),
-                 Person "B" (Store, 4)]
+-- tick :: G
+-- tick = do
+--   cs <- use chars
+--   pm <- ask
+--   atPlaces
+
+-- tick :: RWS PlaceMap String S ()
+-- tick = do
+--   cs <- use chars
+--   pm <- ask
+--   cs' <- cs `forM` \(Character n (p, d)) ->
+--             case d of
+--               1 -> do
+--                 tellChar n p
+--                 (newPath, g') <- newDest p pm <$> use gen
+--                 gen .= g'
+--                 return $ Character n newPath
+--               otherwise -> do
+--                 return $ Character n (p, d - 1)
+--   chars .= cs'
+--   return ()
+
+-- start = makeS 1 [Character "A" (Hotel, 4),
+--                  Character "B" (Store, 4)]
